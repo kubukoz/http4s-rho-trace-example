@@ -19,6 +19,11 @@ import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import redis.RedisRepository
 import routes.{MyRoutes, NativeRoutes}
+import cats.~>
+import cats.effect.implicits._
+import cats.implicits._
+import shapeless.ops.nat
+import natchez.noop.NoopSpan
 
 object Main extends IOApp {
 
@@ -46,7 +51,7 @@ object Main extends IOApp {
     for {
       config                <- Resource.eval(parser.decodeF[F, ProjectConfig]())
       ep                    <- entryPoint[F]
-      redisClient           <- redis.redisClient[F](config.redis)
+      redisClient           <- redis.redisClient[K](config.redis).mapK(Kleisli.applyK(NoopSpan[F]))
       redisRepo              = RedisRepository[K](redisClient)
       metadata               = SwaggerMetadata(
                                  apiInfo = Info(title = "Example ro API", version = "0.1.0"),
